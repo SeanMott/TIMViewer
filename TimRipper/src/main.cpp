@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
 		}
 
 		sprintf(filenameBuffer, "%s_extract_%d.tim", settings.outDir.string().c_str(), i);
-		printf("Extracting %s, %d bytes ...\n", filenameBuffer, fileSize);
+		fmt::print("Extracting {}, {} bytes ...\n", filenameBuffer, fileSize);
 		fprintf(fileTable, "%d\n", extractedTIMs[i].address);
 
 		//read packed file from source
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 		dest = fopen(filenameBuffer, "wb");
 		if (!dest)
 		{
-			printf("Error writing file %s. Did you have write permission here?", filenameBuffer);
+			fmt::print("Error writing file {}. Did you have write permission here?\n", filenameBuffer);
 			fclose(source);
 			return -1;
 		}
