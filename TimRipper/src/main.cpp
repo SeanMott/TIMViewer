@@ -151,7 +151,8 @@ int main(int argc, char* argv[])
 		//if I found a possible tim header, try to next next 32 bit block if there's a valid header.
 		if (checkValue == tim_header)
 		{
-			if (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0) {
+			if (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0)
+			{
 				if (checkValue == tim_4bpp || checkValue == tim_8bpp || checkValue == tim_16bpp || checkValue == tim_24bpp)
 				{
 					//found it!
@@ -169,9 +170,8 @@ int main(int argc, char* argv[])
 	fmt::print("Found {} possible TIM images in this file\n", extractedTIMCount);
 	
 	//writes a config file
-	sprintf(filenameBuffer, "%s_filetable.txt", settings.outDir.string().c_str());
-	FILE* fileTable = fopen(filenameBuffer, "w");
-
+	const std::string configFP = settings.outDir.string() + "/config.txt";
+	FILE* fileTable = fopen(configFP.c_str(), "w");
 	for (size_t i = 0; i < extractedTIMCount; ++i)
 	{
 		if (i != extractedTIMCount - 1) //read until next register
@@ -180,8 +180,8 @@ int main(int argc, char* argv[])
 			fileSize = totalSize - extractedTIMs[i].address;
 
 		//writes the extracted TIM file
-		sprintf(filenameBuffer, "%s_extract_%d.tim", settings.outDir.string().c_str(), i);
-		fmt::print("Extracting {}, {} bytes ...\n", filenameBuffer, fileSize);
+		const std::string extractedTIMFP = settings.outDir.string() + "TIM_" + std::to_string(i) + ".tim";
+		fmt::print("Extracting {}, {} bytes ...\n", extractedTIMFP, fileSize);
 		fprintf(fileTable, "%d\n", extractedTIMs[i].address);
 
 		//read packed file from source
@@ -189,10 +189,10 @@ int main(int argc, char* argv[])
 		fread(fileBuffer, fileSize, 1, source);
 
 		//write at destiny file
-		FILE* dest = fopen(filenameBuffer, "wb");
+		FILE* dest = fopen(extractedTIMFP.c_str(), "wb");
 		if (!dest)
 		{
-			fmt::print("Error writing file {}. Did you have write permission here?\n", filenameBuffer);
+			fmt::print("Error writing file {}. Did you have write permission here?\n", extractedTIMFP);
 			fclose(source);
 			return -1;
 		}
