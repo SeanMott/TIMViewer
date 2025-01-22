@@ -124,15 +124,14 @@ int main(int argc, char* argv[])
 	const ArgumentSettings settings = ParseArguments(argc, argv);
 
 	//sets up data
-	FILE* source, * dest, * fileTable;
-	uint32_t totalSize, address, checkValue, fileSize;
-	char filenameBuffer[256], * fileBuffer;
+	uint32_t checkValue, fileSize;
+	char filenameBuffer[256];
 	const size_t UINT32_MEM_SIZE = sizeof(uint32_t);
 
 	std::vector<ExtractedTIM> extractedTIMs; extractedTIMs.reserve(settings.maxExtractCount);
 
 	//loads bundle
-	source = fopen(settings.bundleFP.string().c_str(), "rb");
+	FILE* source = fopen(settings.bundleFP.string().c_str(), "rb");
 	if (!source) 
 	{
 		fmt::print("Error opening file at \"{}\"\n", settings.bundleFP.string());
@@ -142,10 +141,10 @@ int main(int argc, char* argv[])
 
 	//get file total size
 	fseek(source, 0L, SEEK_END);
-	totalSize = ftell(source);
-	fileBuffer = (char*)malloc(sizeof(char) * totalSize);
+	const uint32_t totalSize = ftell(source);
+	char* fileBuffer = (char*)malloc(sizeof(char) * totalSize);
 
-	address = 0;
+	uint32_t address = 0;
 	fseek(source, 0, SEEK_SET);
 	while (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0)
 	{
@@ -168,23 +167,19 @@ int main(int argc, char* argv[])
 
 	const size_t extractedTIMCount = extractedTIMs.size();
 	fmt::print("Found {} possible TIM images in this file\n", extractedTIMCount);
+	
+	//writes a config file
 	sprintf(filenameBuffer, "%s_filetable.txt", settings.outDir.string().c_str());
-	fileTable = fopen(filenameBuffer, "w");
+	FILE* fileTable = fopen(filenameBuffer, "w");
 
 	for (size_t i = 0; i < extractedTIMCount; ++i)
 	{
-		if (i != extractedTIMCount - 1)
-		{
-			//read until next register
+		if (i != extractedTIMCount - 1) //read until next register
 			fileSize = extractedTIMs[i + 1].address - extractedTIMs[i].address;
-
-		}
-		else 
-		{
-			//read until EOF
+		else //read until EOF
 			fileSize = totalSize - extractedTIMs[i].address;
-		}
 
+		//writes the extracted TIM file
 		sprintf(filenameBuffer, "%s_extract_%d.tim", settings.outDir.string().c_str(), i);
 		fmt::print("Extracting {}, {} bytes ...\n", filenameBuffer, fileSize);
 		fprintf(fileTable, "%d\n", extractedTIMs[i].address);
@@ -194,7 +189,7 @@ int main(int argc, char* argv[])
 		fread(fileBuffer, fileSize, 1, source);
 
 		//write at destiny file
-		dest = fopen(filenameBuffer, "wb");
+		FILE* dest = fopen(filenameBuffer, "wb");
 		if (!dest)
 		{
 			fmt::print("Error writing file {}. Did you have write permission here?\n", filenameBuffer);
