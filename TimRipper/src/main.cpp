@@ -46,7 +46,7 @@ static inline void PrintHelpInfo()
 		"---example useage\nTimRipper.exe {} 3DFX.tim {} TestBundleExtracted\n\n"
 		"----CLI FLAGS----\n\n"
 		"{} <filepath String> || Required || Sets the TIM Bundle we are gonna rip apart\n\n"
-		"{} <directory path String> || Optional || Sets the directory we throw the single TIMs and config file into."
+		"{} <directory path String> || Optional || Sets the directory we throw the single TIMs and config file into. "
 		"If not set, we throw it in the same directory the Bundle was found.\n\n"
 		"{} <Integer> || Optional || Sets the max number of TIMs to extract, if not set, defaults to 512.\n\n",
 		TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_TIM_BUNDLE_FILEPATH, TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_OUTPUT_DIRECTORY_PATH,
