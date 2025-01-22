@@ -8,6 +8,8 @@ Tim Ripper || based on a Pepsiman extractor || https://github.com/elsemieni/peps
 
 #include <filesystem>
 
+#include <vector>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -98,6 +100,15 @@ static inline ArgumentSettings ParseArguments(const int argc, char* argv[])
 	return settings;
 }
 
+//defines a single TIM in the Bundle
+struct ExtractedTIM
+{
+	uint32_t address = 0x0000; //the address we found the TIM at
+};
+
+//defines a TIM Bundle
+
+
 //entry point
 int main(int argc, char* argv[])
 {
@@ -118,8 +129,8 @@ int main(int argc, char* argv[])
 	char filenameBuffer[256], * fileBuffer;
 	const size_t UINT32_MEM_SIZE = sizeof(uint32_t);
 
-	std::vector<uint32_t> addresses; addresses.resize(settings.maxExtractCount);
-	int i, noOfElements;
+	std::vector<ExtractedTIM> extractedTIMs; extractedTIMs.reserve(settings.maxExtractCount);
+	int i;
 
 	//loads bundle
 	source = fopen(settings.bundleFP.string().c_str(), "rb");
@@ -135,7 +146,6 @@ int main(int argc, char* argv[])
 	totalSize = ftell(source);
 	fileBuffer = (char*)malloc(sizeof(char) * totalSize);
 
-	noOfElements = 0;
 	address = 0;
 	fseek(source, 0, SEEK_SET);
 	while (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0)
@@ -148,8 +158,8 @@ int main(int argc, char* argv[])
 				{
 					//found it!
 					printf("Found possible TIM file at 0x%.4x\n", address);
-					addresses[noOfElements] = address;
-					noOfElements++;
+					ExtractedTIM* TIM = &extractedTIMs.emplace_back(ExtractedTIM());
+					TIM->address = address;
 				}
 			}
 			address += UINT32_MEM_SIZE;
@@ -157,30 +167,31 @@ int main(int argc, char* argv[])
 		address += UINT32_MEM_SIZE;
 	}
 
-	printf("Found %d possible TIM images in this file\n", noOfElements);
+	const size_t extractedTIMCount = extractedTIMs.size();
+	printf("Found %d possible TIM images in this file\n", extractedTIMCount);
 	sprintf(filenameBuffer, "%s_filetable.txt", settings.outDir.string().c_str());
 	fileTable = fopen(filenameBuffer, "w");
 
-	for (i = 0; i < noOfElements; i++)
+	for (i = 0; i < extractedTIMCount; ++i)
 	{
-		if (i != noOfElements - 1) 
+		if (i != extractedTIMCount - 1)
 		{
 			//read until next register
-			fileSize = addresses[i + 1] - addresses[i];
+			fileSize = extractedTIMs[i + 1].address - extractedTIMs[i].address;
 
 		}
 		else 
 		{
 			//read until EOF
-			fileSize = totalSize - addresses[i];
+			fileSize = totalSize - extractedTIMs[i].address;
 		}
 
 		sprintf(filenameBuffer, "%s_extract_%d.tim", settings.outDir.string().c_str(), i);
 		printf("Extracting %s, %d bytes ...\n", filenameBuffer, fileSize);
-		fprintf(fileTable, "%d\n", addresses[i]);
+		fprintf(fileTable, "%d\n", extractedTIMs[i].address);
 
 		//read packed file from source
-		fseek(source, addresses[i], SEEK_SET);
+		fseek(source, extractedTIMs[i].address, SEEK_SET);
 		fread(fileBuffer, fileSize, 1, source);
 
 		//write at destiny file
@@ -199,7 +210,7 @@ int main(int argc, char* argv[])
 	//done
 	fclose(fileTable);
 	fclose(source);
-	printf("%d files processed correctly!\n", noOfElements);
+	printf("%d files processed correctly!\n", extractedTIMCount);
 
 	return 0;
 
