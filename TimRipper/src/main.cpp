@@ -45,9 +45,11 @@ static inline void PrintHelpInfo()
 		"----CLI FLAGS----\n\n"
 		"{} <filepath String> || Required || Sets the TIM Bundle we are gonna rip apart\n\n"
 		"{} <directory path String> || Optional || Sets the directory we throw the single TIMs and config file into."
-		"If not set, we throw it in the same directory the Bundle was found.\n\n",
+		"If not set, we throw it in the same directory the Bundle was found.\n\n"
+		"{} <Integer> || Optional || Sets the max number of TIMs to extract, if not set, defaults to 512.\n\n",
 		TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_TIM_BUNDLE_FILEPATH, TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_OUTPUT_DIRECTORY_PATH,
-		TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_TIM_BUNDLE_FILEPATH, TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_OUTPUT_DIRECTORY_PATH);
+		TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_TIM_BUNDLE_FILEPATH, TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_OUTPUT_DIRECTORY_PATH,
+		TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_MAX_EXTRACT_COUNT);
 }
 
 //parses the arguments
@@ -55,6 +57,43 @@ static inline ArgumentSettings ParseArguments(const int argc, char* argv[])
 {
 	ArgumentSettings settings;
 
+	//parse the arguments
+	for (size_t i = 1; i < argc; ++i)
+	{
+		//bundle path
+		if (!strcmp(argv[i], TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_TIM_BUNDLE_FILEPATH))
+		{
+			//checks for value
+
+			//gets value
+			i++;
+			settings.bundleFP = argv[i];
+		}
+
+		//output directory
+		else if (!strcmp(argv[i], TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_OUTPUT_DIRECTORY_PATH))
+		{
+			//checks for value
+
+			//gets value
+			i++;
+			settings.outDir = argv[i];
+
+			//checks if directory ends with /
+			if (settings.outDir.string()[settings.outDir.string().size() - 1] != '/')
+				settings.outDir += '/';
+		}
+
+		//max extracts
+		else if (!strcmp(argv[i], TIM_RIPPER_CLI_ARGUMENT_FLAG_STRING_RIPPED_TIM_MAX_EXTRACT_COUNT))
+		{
+			//checks for value
+
+			//gets value
+			i++;
+			settings.maxExtractCount = std::stoul(argv[i]);
+		}
+	}
 
 	return settings;
 }
@@ -73,21 +112,21 @@ int main(int argc, char* argv[])
 	//parses the arguments
 	const ArgumentSettings settings = ParseArguments(argc, argv);
 
+	//sets up data
 	FILE* source, * dest, * fileTable;
 	uint32_t totalSize, address, checkValue, fileSize;
 	char filenameBuffer[256], * fileBuffer;
+	const size_t UINT32_MEM_SIZE = sizeof(uint32_t);
 
 	std::vector<uint32_t> addresses; addresses.resize(settings.maxExtractCount);
 	int i, noOfElements;
 
-	if (argc != 2) {
-		printf("Usage: extractor.exe filename\nExample: extractor.exe 0001");
-		return -1;
-	}
-
-	source = fopen(argv[1], "rb");
-	if (!source) {
-		printf("Error opening file %s", argv[1]);
+	//loads bundle
+	source = fopen(settings.bundleFP.string().c_str(), "rb");
+	if (!source) 
+	{
+		fmt::print("Error opening file at \"{}\"\n", settings.bundleFP.string());
+		getchar();
 		return -1;
 	}
 
@@ -99,12 +138,12 @@ int main(int argc, char* argv[])
 	noOfElements = 0;
 	address = 0;
 	fseek(source, 0, SEEK_SET);
-	while (fread(&checkValue, sizeof(uint32_t), 1, source) != 0)
+	while (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0)
 	{
 		//if I found a possible tim header, try to next next 32 bit block if there's a valid header.
 		if (checkValue == tim_header)
 		{
-			if (fread(&checkValue, sizeof(uint32_t), 1, source) != 0) {
+			if (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0) {
 				if (checkValue == tim_4bpp || checkValue == tim_8bpp || checkValue == tim_16bpp || checkValue == tim_24bpp)
 				{
 					//found it!
@@ -113,27 +152,30 @@ int main(int argc, char* argv[])
 					noOfElements++;
 				}
 			}
-			address += sizeof(uint32_t);
+			address += UINT32_MEM_SIZE;
 		}
-		address += sizeof(uint32_t);
+		address += UINT32_MEM_SIZE;
 	}
 
 	printf("Found %d possible TIM images in this file\n", noOfElements);
-	sprintf(filenameBuffer, "%s_filetable.txt", argv[1]);
+	sprintf(filenameBuffer, "%s_filetable.txt", settings.outDir.string().c_str());
 	fileTable = fopen(filenameBuffer, "w");
 
-	for (i = 0; i < noOfElements; i++) {
-		if (i != noOfElements - 1) {
+	for (i = 0; i < noOfElements; i++)
+	{
+		if (i != noOfElements - 1) 
+		{
 			//read until next register
 			fileSize = addresses[i + 1] - addresses[i];
 
 		}
-		else {
+		else 
+		{
 			//read until EOF
 			fileSize = totalSize - addresses[i];
 		}
 
-		sprintf(filenameBuffer, "%s_extract_%d.tim", argv[1], i);
+		sprintf(filenameBuffer, "%s_extract_%d.tim", settings.outDir.string().c_str(), i);
 		printf("Extracting %s, %d bytes ...\n", filenameBuffer, fileSize);
 		fprintf(fileTable, "%d\n", addresses[i]);
 
@@ -143,7 +185,8 @@ int main(int argc, char* argv[])
 
 		//write at destiny file
 		dest = fopen(filenameBuffer, "wb");
-		if (!dest) {
+		if (!dest)
+		{
 			printf("Error writing file %s. Did you have write permission here?", filenameBuffer);
 			fclose(source);
 			return -1;
