@@ -130,7 +130,6 @@ int main(int argc, char* argv[])
 	const size_t UINT32_MEM_SIZE = sizeof(uint32_t);
 
 	std::vector<ExtractedTIM> extractedTIMs; extractedTIMs.reserve(settings.maxExtractCount);
-	int i;
 
 	//loads bundle
 	source = fopen(settings.bundleFP.string().c_str(), "rb");
@@ -168,11 +167,11 @@ int main(int argc, char* argv[])
 	}
 
 	const size_t extractedTIMCount = extractedTIMs.size();
-	printf("Found %d possible TIM images in this file\n", extractedTIMCount);
+	fmt::print("Found {} possible TIM images in this file\n", extractedTIMCount);
 	sprintf(filenameBuffer, "%s_filetable.txt", settings.outDir.string().c_str());
 	fileTable = fopen(filenameBuffer, "w");
 
-	for (i = 0; i < extractedTIMCount; ++i)
+	for (size_t i = 0; i < extractedTIMCount; ++i)
 	{
 		if (i != extractedTIMCount - 1)
 		{
@@ -210,7 +209,7 @@ int main(int argc, char* argv[])
 	//done
 	fclose(fileTable);
 	fclose(source);
-	printf("%d files processed correctly!\n", extractedTIMCount);
+	fmt::print("{} files processed correctly!\n", extractedTIMCount);
 
 	return 0;
 
