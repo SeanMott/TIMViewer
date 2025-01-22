@@ -131,8 +131,8 @@ int main(int argc, char* argv[])
 	std::vector<ExtractedTIM> extractedTIMs; extractedTIMs.reserve(settings.maxExtractCount);
 
 	//loads bundle
-	FILE* source = fopen(settings.bundleFP.string().c_str(), "rb");
-	if (!source) 
+	FILE* bundleFile = fopen(settings.bundleFP.string().c_str(), "rb");
+	if (!bundleFile) 
 	{
 		fmt::print("Error opening file at \"{}\"\n", settings.bundleFP.string());
 		getchar();
@@ -140,18 +140,18 @@ int main(int argc, char* argv[])
 	}
 
 	//get file total size
-	fseek(source, 0L, SEEK_END);
-	const uint32_t totalSize = ftell(source);
+	fseek(bundleFile, 0L, SEEK_END);
+	const uint32_t totalSize = ftell(bundleFile);
 	char* fileBuffer = (char*)malloc(sizeof(char) * totalSize);
 
 	uint32_t address = 0;
-	fseek(source, 0, SEEK_SET);
-	while (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0)
+	fseek(bundleFile, 0, SEEK_SET);
+	while (fread(&checkValue, UINT32_MEM_SIZE, 1, bundleFile) != 0)
 	{
 		//if I found a possible tim header, try to next next 32 bit block if there's a valid header.
 		if (checkValue == tim_header)
 		{
-			if (fread(&checkValue, UINT32_MEM_SIZE, 1, source) != 0)
+			if (fread(&checkValue, UINT32_MEM_SIZE, 1, bundleFile) != 0)
 			{
 				if (checkValue == tim_4bpp || checkValue == tim_8bpp || checkValue == tim_16bpp || checkValue == tim_24bpp)
 				{
@@ -185,25 +185,25 @@ int main(int argc, char* argv[])
 		fprintf(fileTable, "%d\n", extractedTIMs[i].address);
 
 		//read packed file from source
-		fseek(source, extractedTIMs[i].address, SEEK_SET);
-		fread(fileBuffer, fileSize, 1, source);
+		fseek(bundleFile, extractedTIMs[i].address, SEEK_SET);
+		fread(fileBuffer, fileSize, 1, bundleFile);
 
 		//write at destiny file
-		FILE* dest = fopen(extractedTIMFP.c_str(), "wb");
-		if (!dest)
+		FILE* extractedTIMFile = fopen(extractedTIMFP.c_str(), "wb");
+		if (!extractedTIMFile)
 		{
 			fmt::print("Error writing file {}. Did you have write permission here?\n", extractedTIMFP);
-			fclose(source);
+			fclose(bundleFile);
 			return -1;
 		}
 
-		fwrite(fileBuffer, fileSize, 1, dest);
-		fclose(dest);
+		fwrite(fileBuffer, fileSize, 1, extractedTIMFile);
+		fclose(extractedTIMFile);
 	}
 
 	//done
 	fclose(fileTable);
-	fclose(source);
+	fclose(bundleFile);
 	fmt::print("{} files processed correctly!\n", extractedTIMCount);
 
 	return 0;
